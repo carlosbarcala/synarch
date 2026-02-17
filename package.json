@@ -1,0 +1,26 @@
+{
+  "name": "synarch",
+  "version": "0.1.0",
+  "main": "index.html",
+  "window": {
+    "title": "Synarch",
+    "icon": "logo-synarch.svg",
+    "width": 1024,
+    "height": 768,
+    "frame": true,
+    "toolbar": false,
+    "resizable": true
+  },
+  "devDependencies": {
+    "nw": "^0.107.0",
+    "nw-builder": "^4.11.3"
+  },
+  "scripts": {
+    "start": "nw . --user-data-dir=.dev-profile",
+    "build:linux": "nwbuild --mode=build --platform=linux --arch=x64 --outDir=dist/linux ./{package.json,index.html,logo-synarch.*}",
+    "build:win": "nwbuild --mode=build --platform=win --arch=x64 --winIco=logo-synarch.ico --outDir=dist/win ./{package.json,index.html,logo-synarch.*}",
+    "build:mac": "nwbuild --mode=build --platform=osx --arch=x64 --macIcns=logo-synarch.icns --outDir=dist/mac ./{package.json,index.html,logo-synarch.*}",
+    "build:deb": "npm run build:linux && bash scripts/build-deb.sh",
+    "build:all": "npm run build:linux && npm run build:win && npm run build:mac"
+  }
+}

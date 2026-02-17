@@ -1,0 +1,218 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Synarch</title>
+  <style>
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border: none;
+    font-family: sans-serif;
+}
+
+.tabs {
+    display: flex;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #eee;
+    z-index: 10;
+    border-bottom: 1px solid #ccc;
+}
+
+.tab {
+    flex: 1;
+    padding: 10px 0;
+    cursor: pointer;
+    user-select: none;
+    text-align: center;
+}
+
+.tab.active {
+    font-weight: bold;
+    background: #ddd;
+}
+
+.progress-bar {
+    position: absolute;
+    top: 41px;
+    left: 0;
+    height: 3px;
+    width: 0%;
+    background: #1a73e8;
+    z-index: 11;
+    transition: width 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.progress-bar.loading {
+    opacity: 1;
+}
+
+.webview {
+    position: absolute;
+    top: 42px;
+    bottom: 0;
+    width: 100%;
+    border: none;
+}
+  </style>
+</head>
+
+<body>
+  <div class="tabs">
+    <div class="tab" data-target="chatgpt">ChatGPT</div>
+    <div class="tab active" data-target="claude">Claude</div>
+    <div class="tab" data-target="gemini">Gemini</div>
+    <div class="tab" data-target="grok">Grok</div>
+    <div class="tab" data-target="deepseek">DeepSeek</div>
+    <div class="tab" data-target="copilot">Copilot</div>
+    <div class="tab" data-target="perplexity">Perplexity</div>
+    <div class="tab" data-target="mistral">Mistral</div>
+  </div>
+
+  <div id="progress-bar" class="progress-bar"></div>
+
+  <!-- multiple webviews, only one visible at a time -->
+  <webview id="chatgpt" class="webview" src="https://chatgpt.com" style="display:none;" partition="persist:chatgpt" disablewebsecurity></webview>
+  <webview id="claude" class="webview" src="https://claude.ai" partition="persist:claude" disablewebsecurity></webview>
+  <webview id="gemini" class="webview" src="https://gemini.google.com" style="display:none;" partition="persist:gemini" disablewebsecurity></webview>
+  <webview id="grok" class="webview" src="https://grok.com" style="display:none;" partition="persist:grok" disablewebsecurity></webview>
+  <webview id="deepseek" class="webview" src="https://chat.deepseek.com" style="display:none;" partition="persist:deepseek" disablewebsecurity></webview>
+  <webview id="copilot" class="webview" src="https://copilot.microsoft.com" style="display:none;" partition="persist:copilot" disablewebsecurity></webview>
+  <webview id="perplexity" class="webview" src="https://www.perplexity.ai" style="display:none;" partition="persist:perplexity" disablewebsecurity></webview>
+  <webview id="mistral" class="webview" src="https://chat.mistral.ai" style="display:none;" partition="persist:mistral" disablewebsecurity></webview>
+    
+  <script>
+    const tabs = document.querySelectorAll('.tab');
+    const views = {
+      chatgpt: document.getElementById('chatgpt'),
+      claude: document.getElementById('claude'),
+      gemini: document.getElementById('gemini'),
+      grok: document.getElementById('grok'),
+      deepseek: document.getElementById('deepseek'),
+      copilot: document.getElementById('copilot'),
+      perplexity: document.getElementById('perplexity'),
+      mistral: document.getElementById('mistral')
+    };
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        // if already active, do nothing
+        if (tab.classList.contains('active')) return;
+
+        // update active styles
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // show corresponding webview and hide others
+        const target = tab.dataset.target;
+        Object.keys(views).forEach(key => {
+          views[key].style.display = key === target ? 'block' : 'none';
+        });
+      });
+    });
+
+    // Barra de progreso de carga
+    const progressBar = document.getElementById('progress-bar');
+
+    function getActiveView() {
+      const activeTab = document.querySelector('.tab.active');
+      return activeTab ? views[activeTab.dataset.target] : null;
+    }
+
+    Object.values(views).forEach(view => {
+      view.addEventListener('loadstart', () => {
+        if (view === getActiveView()) {
+          progressBar.style.width = '20%';
+          progressBar.classList.add('loading');
+        }
+      });
+
+      view.addEventListener('loadcommit', () => {
+        if (view === getActiveView()) {
+          progressBar.style.width = '60%';
+        }
+      });
+
+      view.addEventListener('loadstop', () => {
+        if (view === getActiveView()) {
+          progressBar.style.width = '100%';
+          setTimeout(() => {
+            progressBar.classList.remove('loading');
+            progressBar.style.width = '0%';
+          }, 300);
+        }
+      });
+
+      view.addEventListener('loadabort', () => {
+        if (view === getActiveView()) {
+          progressBar.classList.remove('loading');
+          progressBar.style.width = '0%';
+        }
+      });
+    });
+
+    // Mostrar progreso al cambiar de pestaña si el webview está cargando
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.target;
+        const view = views[target];
+        if (view && view.isLoading && view.isLoading()) {
+          progressBar.style.width = '40%';
+          progressBar.classList.add('loading');
+        } else {
+          progressBar.classList.remove('loading');
+          progressBar.style.width = '0%';
+        }
+      });
+    });
+
+    // F12: abrir DevTools del webview activo (shortcut global de NW.js)
+    const f12 = new nw.Shortcut({ key: 'F12', active: () => {
+      const active = getActiveView();
+      if (active) active.showDevTools(true);
+    }});
+    nw.App.registerGlobalHotKey(f12);
+
+    // Ctrl+Shift+I: abrir DevTools de la ventana principal
+    const devtools = new nw.Shortcut({ key: 'Ctrl+Shift+I', active: () => {
+      nw.Window.get().showDevTools();
+    }});
+    nw.App.registerGlobalHotKey(devtools);
+
+    // Liberar shortcuts al cerrar la ventana
+    nw.Window.get().on('close', function () {
+      nw.App.unregisterGlobalHotKey(f12);
+      nw.App.unregisterGlobalHotKey(devtools);
+      this.close(true);
+    });
+
+    // Habilitar menú secundario (clic derecho) en los webviews
+    Object.values(views).forEach(view => {
+      view.addEventListener('loadstop', () => {
+        view.executeScript({ code: `
+          document.addEventListener('contextmenu', (e) => {
+            e.stopImmediatePropagation();
+          }, true);
+        `});
+      });
+    });
+
+    // add fail handlers for each
+    Object.values(views).forEach(view => {
+      view.addEventListener('did-fail-load', () => {
+        alert('No se pudo cargar la web en ' + view.id);
+      });
+    });
+
+  </script>
+</body>
+</html>
