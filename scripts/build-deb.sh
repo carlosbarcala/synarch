@@ -47,6 +47,11 @@ cp "$ROOT/logo-synarch.svg" "$DEB_DIR/usr/share/pixmaps/synarch.svg"
 # Symlink en PATH
 ln -s /opt/synarch/synarch "$DEB_DIR/usr/bin/synarch"
 
-# Generar .deb
-dpkg-deb --build "$DEB_DIR" "$OUT"
+# Optimización: Eliminar locales innecesarios (ahorra ~100MB)
+echo "Optimizando locales..."
+find "$DEB_DIR/opt/synarch/locales" -type f ! -name "es.pak" ! -name "en-US.pak" -delete
+
+# Generar .deb con compresión máxima (xz)
+echo "Generando paquete .deb con compresión xz..."
+dpkg-deb -Zxz --build "$DEB_DIR" "$OUT"
 echo "Paquete generado: $OUT"

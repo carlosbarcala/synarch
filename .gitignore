@@ -1,6 +1,7 @@
 # Build and local development
 node_modules/
 dist/
+releases/
 cache/
 .dev-profile/
 
